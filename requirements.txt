@@ -1,0 +1,8 @@
+python-dotenv
+PyYAML
+pandas
+numpy
+pyarrow
+vnstock
+boto3
+s3fs

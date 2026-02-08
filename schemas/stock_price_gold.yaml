@@ -1,0 +1,52 @@
+table: stock_price_daily
+description: >
+  Daily aggregated stock metrics for analytics and BI.
+
+columns:
+  symbol:
+    type: string
+    nullable: false
+
+  trading_date:
+    type: date
+    nullable: false
+
+  close_price:
+    type: float
+    nullable: false
+
+  volume:
+    type: bigint
+    nullable: false
+
+  daily_return:
+    type: float
+    nullable: true
+    description: (close_price - prev_close) / prev_close
+
+  ma_5:
+    type: float
+    nullable: true
+    description: 5-day moving average
+
+  ma_20:
+    type: float
+    nullable: true
+    description: 20-day moving average
+
+primary_key:
+  - symbol
+  - trading_date
+
+partition_by:
+  - trading_date
+
+quality_checks:
+  not_null:
+    - symbol
+    - trading_date
+    - close_price
+    - volume
+
+  positive_values:
+    - volume

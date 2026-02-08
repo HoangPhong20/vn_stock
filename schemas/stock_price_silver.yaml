@@ -1,0 +1,84 @@
+table: stock_price_silver
+description: >
+  Cleaned daily stock price data from vnstock (HOSE).
+  One row per symbol per trading date.
+  Filtered to dataset-level business date_range at SILVER stage.
+
+# dataset-level business filter (used by pipeline to read relevant Bronze partitions)
+date_range:
+  column: trading_date
+  start: "{{ source.date_range.start }}"
+  end: "{{ source.date_range.end }}"
+
+columns:
+  symbol:
+    type: string
+    nullable: false
+    description: Stock ticker symbol (HOSE)
+
+  trading_date:
+    type: date
+    nullable: false
+    description: Trading date (YYYY-MM-DD)
+
+  open:
+    type: float
+    nullable: true
+    description: Opening price (may be null for special trading days)
+
+  high:
+    type: float
+    nullable: true
+    description: Highest price of the day
+
+  low:
+    type: float
+    nullable: true
+    description: Lowest price of the day
+
+  close_price:
+    type: float
+    nullable: false
+    description: Closing price
+
+  volume:
+    type: bigint
+    nullable: false
+    description: Trading volume (>= 0)
+
+  exchange:
+    type: string
+    nullable: false
+    default: HOSE
+
+  source:
+    type: string
+    nullable: false
+    default: vnstock
+
+  ingestion_time:
+    type: timestamp
+    nullable: false
+    description: Time when data was ingested
+
+primary_key:
+  - symbol
+  - trading_date
+
+partition_by:
+  - trading_date
+
+quality_checks:
+  not_null:
+    - symbol
+    - trading_date
+    - ingestion_time
+    - close_price
+    - volume
+
+  positive_values:
+    - open
+    - high
+    - low
+    - close_price
+    - volume

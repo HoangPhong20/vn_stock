@@ -1,0 +1,28 @@
+project:
+  name: vn_stock
+  env: local   # local | dev | prod
+
+source:
+  provider: vnstock
+  universe:
+    type: exchange        # exchange | index | custom
+    name: HOSE
+  date_range:
+    start: "2026-01-01"   # fetch hint (wider is ok)
+    end: "2026-01-15"
+
+storage:
+  type: s3
+  bucket: vnstock-project
+  region: ap-southeast-1
+
+paths:
+  bronze: bronze/stock_price
+  silver: silver/stock_price
+  gold: gold/stock_price_daily
+
+dataset:
+  stock_price:
+    date_range:
+      start: "2026-01-01"
+      end: "2026-01-31"
