@@ -5,11 +5,13 @@ project:
 source:
   provider: vnstock
   universe:
-    type: exchange        # exchange | index | custom
-    name: HOSE
+    type: exchange
+    names:
+      - HOSE
+      - HNX
   date_range:
-    start: "2026-01-01"   # fetch hint (wider is ok)
-    end: "2026-01-15"
+    start: "2025-01-01"   # fetch hint (wider is ok)
+    end: "2025-12-31"
 
 storage:
   type: s3
@@ -24,5 +26,5 @@ paths:
 dataset:
   stock_price:
     date_range:
-      start: "2026-01-01"
-      end: "2026-01-31"
+      start: "2026-06-01"
+      end: "2026-12-31"

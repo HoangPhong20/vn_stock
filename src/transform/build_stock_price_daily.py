@@ -18,7 +18,7 @@ def build_stock_price_daily(silver_df: pd.DataFrame) -> pd.DataFrame:
     df = silver_df.copy()
 
     # --- 0. kiểm tra cột bắt buộc ---
-    required_cols = {"symbol", "trading_date", "close_price", "volume"}
+    required_cols = {"symbol", "exchange", "trading_date", "close_price", "volume"}
     missing = required_cols - set(df.columns)
     if missing:
         logger.warning("Missing required columns for GOLD build: %s. Skip.", missing)
@@ -43,42 +43,43 @@ def build_stock_price_daily(silver_df: pd.DataFrame) -> pd.DataFrame:
 
     # --- sắp xếp ổn định trước khi tạo feature ---
     df = df.sort_values(
-        by=["symbol", "trading_date"],
+        by=["symbol", "exchange", "trading_date"],
         kind="mergesort"
     )
 
-    # --- loại trùng khóa (symbol, trading_date) ---
+    # --- loại trùng khóa (symbol, exchange, trading_date) ---
     before_dups = len(df)
-    df = df.drop_duplicates(subset=["symbol", "trading_date"], keep="last")
+    df = df.drop_duplicates(subset=["symbol", "exchange", "trading_date"], keep="last")
     removed_dups = before_dups - len(df)
     if removed_dups > 0:
-        logger.warning("Dropped %d duplicate (symbol, trading_date) rows", removed_dups)
+        logger.warning("Dropped %d duplicate (symbol, exchange, trading_date) rows", removed_dups)
 
     # --- ma trận feature: prev_close + daily_return ---
-    df["prev_close"] = df.groupby("symbol")["close_price"].shift(1)
+    df["prev_close"] = df.groupby(["symbol", "exchange"])["close_price"].shift(1)
     valid_prev = df["prev_close"].notna() & (df["prev_close"] != 0)
     df["daily_return"] = np.where(valid_prev, (df["close_price"] - df["prev_close"]) / df["prev_close"], np.nan)
 
     # --- MA 5 ngày ---
     df["ma_5"] = (
-        df.groupby("symbol")["close_price"]
+        df.groupby(["symbol", "exchange"])["close_price"]
         .rolling(window=5, min_periods=1)
         .mean()
-        .reset_index(level=0, drop=True)
+        .reset_index(level=[0, 1], drop=True)
     )
 
     # --- MA 20 ngày ---
     df["ma_20"] = (
-        df.groupby("symbol")["close_price"]
+        df.groupby(["symbol", "exchange"])["close_price"]
         .rolling(window=20, min_periods=1)
         .mean()
-        .reset_index(level=0, drop=True)
+        .reset_index(level=[0, 1], drop=True)
     )
 
     # --- chọn cột GOLD ---
     gold_df = df[
         [
             "symbol",
+            "exchange",
             "trading_date",
             "close_price",
             "volume",
@@ -88,8 +89,8 @@ def build_stock_price_daily(silver_df: pd.DataFrame) -> pd.DataFrame:
         ]
     ].copy()
 
-    # ensure symbol is plain python str (avoid pandas nullable string dtype)
     gold_df["symbol"] = gold_df["symbol"].astype(str)
+    gold_df["exchange"] = gold_df["exchange"].astype(str)
 
     # --- đảm bảo dtype cuối ---
     # single astype excluding symbol
@@ -103,7 +104,7 @@ def build_stock_price_daily(silver_df: pd.DataFrame) -> pd.DataFrame:
 
     # --- sắp xếp cuối cùng ---
     # Final sort (important for downstream BI / parquet consistency)
-    gold_df = gold_df.sort_values(by=["symbol", "trading_date"])
+    gold_df = gold_df.sort_values(by=["symbol", "exchange", "trading_date"])
 
     gold_df.reset_index(drop=True, inplace=True)
 

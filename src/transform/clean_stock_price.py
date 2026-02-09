@@ -66,7 +66,9 @@ def clean_stock_price(
     # ------------------------------------------------------------------
     # 4. Ghi metadata
     # ------------------------------------------------------------------
-    df["exchange"] = exchange
+    if "exchange" not in df.columns:
+        raise ValueError("exchange column missing in raw data")
+    df["exchange"] = df["exchange"].astype(str).str.strip().str.upper()
     df["source"] = source
     df["ingestion_time"] = datetime.utcnow()
 

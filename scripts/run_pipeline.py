@@ -7,7 +7,7 @@ from typing import Optional
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype
 from src.utils.logger import get_logger
-from src.extract.fetch_stock_price import fetch_hose_stock_prices
+from src.extract.fetch_stock_price import fetch_stock_prices
 from src.transform.clean_stock_price import clean_stock_price
 from src.transform.build_stock_price_daily import build_stock_price_daily
 from src.transform.validate_gold_schema import validate_stock_price_daily
@@ -45,11 +45,20 @@ def run_daily_pipeline(run_date: Optional[date] = None) -> None:
 
     # --- TRÍCH XUẤT ---
     try:
-        raw_df = fetch_hose_stock_prices(
-            start_date=source_range.get("start"),
-            end_date=source_range.get("end"),
-            run_date=run_date,
-        )
+        raw_dfs = []
+        for exchange in cfg["source"]["universe"]["names"]:
+            df = fetch_stock_prices(
+                exchange=exchange,
+                start_date=source_range.get("start"),
+                end_date=source_range.get("end"),
+                run_date=run_date,
+            )
+            if df is not None and not df.empty:
+                df = df.copy()
+                df["exchange"] = exchange
+                raw_dfs.append(df)
+
+        raw_df = pd.concat(raw_dfs, ignore_index=True) if raw_dfs else pd.DataFrame()
     except Exception:
         logger.exception("Failed to fetch raw data")
         sys.exit(1)

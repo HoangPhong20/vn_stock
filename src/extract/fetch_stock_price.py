@@ -38,12 +38,12 @@ def _normalize_date_str(d: Optional[str]) -> Optional[str]:
         raise ValueError(f"Invalid date format (expected YYYY-MM-DD): {d}") from exc
 
 
-def fetch_hose_symbols() -> List[str]:
+def fetch_symbols_by_exchange(exchange: str) -> List[str]:
     vn = Vnstock().stock(symbol="VNM", source="KBS")
     symbols_df = vn.listing.symbols_by_exchange()
-    hose_df = symbols_df[symbols_df["exchange"] == "HOSE"]
-    symbols = hose_df["symbol"].dropna().unique().tolist()
-    logger.info("Fetched %d HOSE symbols", len(symbols))
+    ex_df = symbols_df[symbols_df["exchange"] == exchange]
+    symbols = ex_df["symbol"].dropna().unique().tolist()
+    logger.info("Fetched %d %s symbols", len(symbols), exchange)
     return symbols
 
 
@@ -51,7 +51,8 @@ def fetch_hose_symbols() -> List[str]:
 # BRONZE / RAW – THỰC THI RÀO CHẮN NGÀY TẠI ĐÂY
 # -------------------------------------------------------------------
 
-def fetch_hose_stock_prices(
+def fetch_exchange_stock_prices(
+    exchange: str,
     start_date: str,
     end_date: str,
     run_date: Optional[date] = None,
@@ -69,7 +70,7 @@ def fetch_hose_stock_prices(
     start_ts = pd.to_datetime(start_date).normalize()
     end_ts = pd.to_datetime(end_date).normalize()
 
-    symbols = fetch_hose_symbols()
+    symbols = fetch_symbols_by_exchange(exchange)
     if not symbols:
         return pd.DataFrame()
 
@@ -187,3 +188,19 @@ def fetch_hose_stock_prices(
     )
 
     return df
+
+
+def fetch_hose_stock_prices(start_date: str, end_date: str, run_date: Optional[date] = None) -> pd.DataFrame:
+    return fetch_exchange_stock_prices("HOSE", start_date, end_date, run_date)
+
+
+def fetch_hnx_stock_prices(start_date: str, end_date: str, run_date: Optional[date] = None) -> pd.DataFrame:
+    return fetch_exchange_stock_prices("HNX", start_date, end_date, run_date)
+
+
+def fetch_stock_prices(exchange: str, start_date: str, end_date: str, run_date: Optional[date] = None) -> pd.DataFrame:
+    if exchange == "HOSE":
+        return fetch_hose_stock_prices(start_date, end_date, run_date)
+    if exchange == "HNX":
+        return fetch_hnx_stock_prices(start_date, end_date, run_date)
+    raise ValueError(f"Unsupported exchange: {exchange}")
